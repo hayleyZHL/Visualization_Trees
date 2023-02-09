@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <title>Title</title>
+</head>
+<body>
+
+<p>
+    <div style="text-align:center;">
+        <h2 style="color: black;">Distribution of the Trees and Sizes</h2>
+        <svg id="choropleth" height="770" width="990" style="margin:20px" />
+    </div>
+
+    <div style="text-align:center;">
+        <h2 style="color: black;"> How Many Trees Were Planted Over The Years? </h2>
+        <svg id="yeartrendGeneral" height="650" width="950" style="margin:20px" />
+    </div>
+
+    <div style="text-align:center;">
+        <h2 style="color: black;"> A Closer Look: # of Top Five Species Planted In Peek Years</h2>
+        <svg id="yeartrend" height="650" width="950" style="margin:20px" />
+    </div>
+
+    <div style="text-align:center;">
+        <h2 style="color: black;"> Top 10 Tree Species Planted</h2>
+        <svg id="barchart" height="650" width="1000" style="margin:20px" />
+    </div>
+
+<script>
+    // Map
+    const svg = d3.select("#choropleth");
+    const width = svg.attr("width");
+    const height = svg.attr("height");
+    const margin = { top: 20, right: 20, bottom: 20, left:20};
+    const vpWidth = width - margin.left - margin.right;
+    const vpHeight = height - margin.top - margin.bottom;
+    const viewport = svg.append("g")
+        .attr("transform","translate("+margin.left+","+margin.top+")");
+
+    // Year Trend General
+    const svg3 = d3.select("#yeartrendGeneral");
+    const width3 = svg3.attr("width");
+    const height3 = svg3.attr("height");
+    const margin3 = { top: 20, right: 20, bottom: 80, left: 80};
+    const vpWidth3 = width3 - margin3.left - margin3.right;
+    const vpHeight3 = height3 - margin3.top - margin3.bottom;
+    const viewport3 = svg3.append("g")
+        .attr("transform","translate("+margin3.left+","+margin3.top+")");
+
+    // Year Trend with Tree Species
+    const svg2 = d3.select("#yeartrend");
+    const width2 = svg2.attr("width");
+    const height2 = svg2.attr("height");
+    const margin2 = { top: 20, right: 20, bottom: 80, left: 80};
+    const vpWidth2 = width2 - margin2.left - margin2.right;
+    const vpHeight2 = height2 - margin2.top - margin2.bottom;
+    const viewport2 = svg2.append("g")
+        .attr("transform","translate("+margin2.left+","+margin2.top+")");
+
+    // Barchart
+    const svg4 = d3.select("#barchart");
+    const width4 = svg4.attr("width");
+    const height4 = svg4.attr("height");
+    const margin4 = { top: 20, right: 20, bottom: 80, left: 180};
+    const vpWidth4 = width4 - margin4.left - margin4.right;
+    const vpHeight4 = height4 - margin4.top - margin4.bottom;
+    const viewport4 = svg4.append("g")
+        .attr("transform","translate("+margin4.left+","+margin4.top+")");
+
+    const requestData = async function() {
+
+        const rawTreesFiltered = await d3.csv('Street_Tree_List-2022-01-30_FILTERED.csv');
+        const rawTrees = await d3.csv('Street_Tree_List-2022-01-30_RAW.csv');
+
+        const sf = await d3.json("SF-Neighborhoods.geo.json");
+
+        // Filter out trees planted before 1955
+        let trees = rawTrees.filter(d => d.PlantDate != "");
+        trees.forEach( (d) => {
+            d['DBH'] = Number(d['DBH']);
+            d['Latitude'] = Number(d['Latitude']);
+            d['Longitude'] = Number(d['Longitude']);
+            d['SiteOrder'] = Number(d['SiteOrder']);
+            d['PlantDate'] = new Date(d['PlantDate']);
+            d['Year'] = d['PlantDate'].getFullYear();
+        });
+        console.log(trees)
+        let yearCount = Array.from(d3.rollup(trees, v => v.length, d => d.Year))
+            yearCount = yearCount.sort((a, b) => a[0] - b[0]);
+        console.log(yearCount)
+
+        // Draw Map
+        let sfNeighborhoods = topojson.feature(sf, sf.objects.SFNeighborhoods);
+        console.log(sfNeighborhoods)
+
+        let projection = d3.geoMercator().fitSize([vpWidth, vpHeight], sfNeighborhoods);
+        let path = d3.geoPath().projection(projection);
+
+        const maxTreeSize = d3.max(trees, function(d) { return d.DBH; })
+        let treeSizeScale = d3.scaleLinear().domain([0, Math.log(1 + maxTreeSize)]).range([0,6]);
+
+        viewport.selectAll("path")
+            .data(sfNeighborhoods.features)
+            .join("path")
+            .attr("fill", "white") //no stroke
+            .attr("stroke", "lightgray")
+            .attr("stroke-width", 1.8)
+            .attr("d", d => path(d.geometry));
+
+        let processedTrees = trees.filter(d => !isNaN(d.DBH));
+        viewport.selectAll("circle")
+            .data(processedTrees)
+            .join("circle")
+            .attr("cx", d => projection([d.Longitude, d.Latitude])[0])
+            .attr("cy", d => projection([d.Longitude, d.Latitude])[1])
+            .attr("r", d => treeSizeScale(Math.log(1 + d.DBH)))
+            .attr("opacity", 0.4)
+            .attr("fill", "green");
+
+        // Year Trend General
+        const xGen = d3.scaleLinear()
+            .domain(d3.extent(trees, function(d) { return d.Year; }))
+            .range([ 0, vpWidth3 ]);
+        viewport3.append("g")
+            .attr("transform", `translate(0, ${vpHeight3})`)
+            .call(d3.axisBottom(xGen));
+
+        const maxBar = d3.max(yearCount, function(d) { return d[1]; })
+        const yGen = d3.scaleLinear()
+            .domain([0, maxBar])
+            .range([ vpHeight3, 0 ]);
+        viewport3.append("g")
+            .call(d3.axisLeft(yGen));
+
+        // Add X axis label:
+        viewport3.append("text")
+            .attr("text-anchor", "end")
+            .attr("font-size", "18")
+            .attr("x", vpWidth2/2)
+            .attr("y", vpHeight2+margin2.top+30)
+            .text("Year");
+        // Y axis label:
+        viewport3.append("text")
+            .attr("text-anchor", "end")
+            .attr("font-size", "18")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -margin2.left+30)
+            .attr("x", -(vpHeight2/2)+50)
+            .text("# of Trees Planted")
+
+        viewport3.append("path")
+            .datum(yearCount)
+            .attr("fill", "none")
+            .attr("stroke", "green" )
+            //.attr("stroke", "url(#line-gradient)" )
+            .attr("stroke-width", 2.5)
+            .attr("d", d3.line()
+                .x(function(d) { return xGen(d[0]) })
+                .y(function(d) { return yGen(d[1]) })
+            )
+        // Draw Year Trend By Species
+        let treeFilteredYear = trees.filter(d => d.Year >= 1997);
+        treeFilteredYear = treeFilteredYear.filter(d => d.Year <= 2009);
+        // All species
+        let speciesByYear = Array.from(d3.rollup(treeFilteredYear, v => v.length, d => d.qSpecies, d => d.Year))
+        let speciesByYearFormatted = Array.from(speciesByYear, ([qSpecies, Year]) => ({
+            qSpecies: qSpecies,
+            Year: Object.entries(Object.fromEntries(Year))
+        }));
+        // Top 5 species
+        let speciesCount = Array.from(d3.rollup(treeFilteredYear, v => v.length, d => d.qSpecies))
+        let topSpecies = speciesCount.sort((a, b) => b[1] - a[1]).slice(0, 4);
+        let topSpeciesArray = []
+        for (let d of topSpecies) { topSpeciesArray = topSpeciesArray.concat(d[0]) }
+        let species = speciesByYearFormatted.filter(d => topSpeciesArray.includes(d.qSpecies));
+
+        // All caretakers
+        let caretakersByYear = Array.from(d3.rollup(trees, v => v.length, d => d.qCaretaker, d => d.Year))
+        let caretakers = Array.from(caretakersByYear, ([qCaretaker, Year]) => ({
+            qCaretaker: qCaretaker,
+            Year: Object.entries(Object.fromEntries(Year))
+        }));
+
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
+
+        const x = d3.scaleLinear()
+            .domain([1997, 2009])
+            .range([ 0, vpWidth2 ]);
+        viewport2.append("g")
+            .attr("transform", `translate(0, ${vpHeight2})`)
+            .call(d3.axisBottom(x));
+
+        //caretaker
+        let caretakerArray = []
+        for (let d of caretakers) {
+            caretakerArray = caretakerArray.concat(d.Year)
+        }
+        const y = d3.scaleLinear()
+            .domain(d3.extent(caretakerArray, function(d) { return d[1]; }))
+            .range([ vpHeight2, 0 ]);
+        viewport2.append("g")
+            .call(d3.axisLeft(y));
+        let caretakerLine = d3.line()
+            .x(function(d){ return x(d[0]); })
+            .y(function(d){ return y(d[1]); });
+
+        //species
+        let speciesArray = []
+        for (let d of species) { speciesArray = speciesArray.concat(d.Year) }
+        const ySpecies = d3.scaleLinear()
+            .domain(d3.extent(speciesArray, function(d) { return d[1]; }))
+            .range([ vpHeight2, 0 ]);
+        viewport2.append("g")
+            .call(d3.axisLeft(y));
+        let speciesLine = d3.line()
+            .x(function(d){ return x(d[0]); })
+            .y(function(d){ return ySpecies(d[1]); });
+
+        // Add X axis label:
+        viewport2.append("text")
+            .attr("text-anchor", "end")
+            .attr("font-size", "18")
+            .attr("x", vpWidth2/2)
+            .attr("y", vpHeight2+margin2.top+30)
+            .text("Year");
+        // Y axis label:
+        viewport2.append("text")
+            .attr("text-anchor", "end")
+            .attr("font-size", "18")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -margin2.left+30)
+            .attr("x", -(vpHeight2/2)+50)
+            .text("# of Trees Planted")
+
+        // draw the lines
+        let pathGroups = viewport2.append('g').attr('id', "pathGroup");
+        pathGroups.selectAll("path")
+            //.data(caretakers)
+            .data(species)
+            .join("path")
+            .attr("fill", "None")
+            .attr("stroke", (d) => { return colorScale(d.qSpecies) } )
+            // .attr("stroke", (d) => { return colorScale(d.qCaretaker) } )
+            .attr("stroke-width", 3)
+            .attr("d", (d) => { return speciesLine(d.Year)})
+
+        // draw the legend
+        let yearLegend = viewport2.append('g').attr('id',"yearLegend");
+        yearLegend.selectAll("rect")
+            .data(topSpeciesArray)
+            .join("rect")
+            .attr("x", 140)
+            .attr("y", function(d,i){ return 10+i*25}) // 100 is where the first dot appears. 25 is the distance between dots
+            .attr("width", 15)
+            .attr("height", 2)
+            .style("fill", function(d){ return colorScale(d)})
+
+        // legend text
+        yearLegend.selectAll("text")
+            .data(topSpeciesArray)
+            .join("text")
+            .attr("x", 170)
+            .attr("y", function(d,i){ return 10+i*25}) // 100 is where the first dot appears. 25 is the distance between dots
+            .style("fill", function(d){ return colorScale(d)})
+            .text(function(d){ return d})
+            .attr("text-anchor", "left")
+            .style("alignment-baseline", "middle")
+
+        // Barchart
+        let allSpecies = Array.from(d3.rollup(trees, v => v.length, d => d.qSpecies))
+        allSpecies = allSpecies.sort((a, b) => b[1] - a[1]).slice(1, 11);
+        console.log(allSpecies)
+
+        const maxB = d3.max(allSpecies, function(d) { return d[1]; })
+
+        const xBar = d3.scaleLinear()
+            .domain([0, maxB])
+            .range([ 0, vpWidth4]);
+        viewport4.append("g")
+            .attr("transform", `translate(0, ${vpHeight4})`)
+            .call(d3.axisBottom(xBar))
+            .selectAll("text")
+            .attr("transform", "translate(0,0)rotate(0)")
+            .style("text-anchor", "middle");
+        // Y axis
+        const yBar = d3.scaleBand()
+            .domain(allSpecies.map(d => d[0]))
+            .range([ vpHeight4, 0 ])
+            .padding(.1);
+        viewport4.append("g")
+            .call(d3.axisLeft(yBar))
+            .selectAll("text")
+            .attr("transform", "translate(-15,-30)rotate(-45)")
+            .style("text-anchor", "end");
+
+        viewport4.selectAll("rect")
+            .data(allSpecies)
+            .join("rect")
+            .attr("x", xBar(0) )
+            .attr("y", d => yBar(d[0]))
+            .attr("width", d => xBar(d[1]))
+            .attr("height", yBar.bandwidth())
+            .attr("fill", "#69b3a2")
+
+        // Add X axis label:
+        viewport4.append("text")
+            .attr("text-anchor", "end")
+            .attr("font-size", "18")
+            .attr("x", vpWidth4/2 + 70)
+            .attr("y", vpHeight4+margin4.top+30)
+            .text("# of Trees Planted");
+    }
+    requestData();
+</script>
+</p>
+</body>
+</html>
