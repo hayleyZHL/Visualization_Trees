@@ -9,26 +9,64 @@
 <body>
 
 <p>
+    <br>
     <div style="text-align:center;">
-        <h2 style="color: black;">Distribution of the Trees and Sizes</h2>
+    <h1 style="color: black;">Distribution of the Trees and Sizes</h1>
+    <h3 style="color: black;">
+            First, before we dive into the details, let us gain an overview of the trees distributed over San Francisco. Here are all the trees plotted on the <br>
+            map of San Francisco. To make sure the plot correctly reflects the density of the trees, all the circles have some degree of transparency. In  <br>
+            addition, since big trees can cover more areas than small trees, I also showed the diameter of the trees (DBH) by varying the size of the circles. <br>
+            Bigger the circle, the larger the tree.
+        </h3>
         <svg id="choropleth" height="770" width="990" style="margin:20px" />
-    </div>
+        <h3 style="color: black;">
+            It’s obvious that there are a few regions that don’t have any trees planted! Checking the visualization against Google Maps, we can find that the <br>
+            three big regions on the west of San Francisco that have no trees in it are all parks covered by trees. This makes sense since the dataset is about <br>
+            trees planted on the sidewalks. It is also very obvious that the regions in the east of San Francisco also do not have many trees. It turns out those <br>
+            are piers of San Francisco, and it makes sense to not have trees on the docks!
+        </h3>
+</div>
 
+    <br><hr><br>
     <div style="text-align:center;">
-        <h2 style="color: black;"> How Many Trees Were Planted Over The Years? </h2>
+        <h1 style="color: black;"> How Many Trees Were Planted Over The Years? </h1>
+        <h3 style="color: black;">
+            To better understand how the city has been doing with tree plotting, let’s take a look at the number of trees planted over the years.
+        </h3>
         <svg id="yeartrendGeneral" height="650" width="950" style="margin:20px" />
+        <h3 style="color: black;">
+            From this line chart, we can see that there have been 4 periods where the city planted a large number of trees, 1970-1975, 1995-2003, 2006-2009, 2013-2016. <br>
+            We can also see the city is slowing down tree planting in recent years.
+        </h3>
     </div>
 
-
+    <br><hr><br>
     <div style="text-align:center;">
-        <h2 style="color: black;"> Top 10 Tree Species Planted</h2>
+        <h1 style="color: black;"> Top 10 Tree Species Planted</h1>
+        <h3 style="color: black;">
+            Now we have an understanding of the city’s tree planting trend, it would also be interesting to see what kinds of trees get planted most. Here I plotted <br>
+            the top 10 tree species planted.
+        </h3>
         <svg id="barchart" height="650" width="1000" style="margin:20px" />
+        <h3 style="color: black;">
+            Looks like Brisban Box is the most popular tree species. Upon checking Wikipedia, it turns out Brisban Box is popular street tree, due to “ its disease and <br>
+            pest resilience, its high tolerance for smog, drought, and poor drainage”, which suits San Francisco very well.
+        </h3>
     </div>
 
+    <br><hr><br>
     <div style="text-align:center;">
-        <h2 style="color: black;"> A Closer Look: # of Top Four Species Planted In Peek Years</h2>
+        <h1 style="color: black;"> A Closer Look: # of Top Four Species Planted In Peek Years</h1>
+        <h3 style="color: black;">
+            Next let's see how the popular tree species are planted over time by plotting the top 4 species.
+        </h3>
         <svg id="yeartrend" height="650" width="950" style="margin:20px" />
+        <h3 style="color: black;">
+            It turns out that despite Brisban Box being the most planted trees historically in San Francisco, it is not the most planted species in recent years. From <br>
+            the line chart above, we can see that the most popular trees in recent years are the Swamp Myrtle and the Hybrid Strawberry Tree.
+        </h3>
     </div>
+<br>
 
 <script>
     // Map
