@@ -19,14 +19,15 @@
         <svg id="yeartrendGeneral" height="650" width="950" style="margin:20px" />
     </div>
 
-    <div style="text-align:center;">
-        <h2 style="color: black;"> A Closer Look: # of Top Five Species Planted In Peek Years</h2>
-        <svg id="yeartrend" height="650" width="950" style="margin:20px" />
-    </div>
 
     <div style="text-align:center;">
         <h2 style="color: black;"> Top 10 Tree Species Planted</h2>
         <svg id="barchart" height="650" width="1000" style="margin:20px" />
+    </div>
+
+    <div style="text-align:center;">
+        <h2 style="color: black;"> A Closer Look: # of Top Four Species Planted In Peek Years</h2>
+        <svg id="yeartrend" height="650" width="950" style="margin:20px" />
     </div>
 
 <script>
@@ -161,6 +162,7 @@
                 .x(function(d) { return xGen(d[0]) })
                 .y(function(d) { return yGen(d[1]) })
             )
+
         // Draw Year Trend By Species
         let treeFilteredYear = trees.filter(d => d.Year >= 1997);
         treeFilteredYear = treeFilteredYear.filter(d => d.Year <= 2009);
@@ -170,6 +172,7 @@
             qSpecies: qSpecies,
             Year: Object.entries(Object.fromEntries(Year))
         }));
+
         // Top 5 species
         let speciesCount = Array.from(d3.rollup(treeFilteredYear, v => v.length, d => d.qSpecies))
         let topSpecies = speciesCount.sort((a, b) => b[1] - a[1]).slice(0, 4);
@@ -272,7 +275,7 @@
         // Barchart
         let allSpecies = Array.from(d3.rollup(trees, v => v.length, d => d.qSpecies))
         allSpecies = allSpecies.sort((a, b) => b[1] - a[1]).slice(1, 11);
-        console.log(allSpecies)
+        allSpecies = allSpecies.sort((a, b) => a[1] - b[1])
 
         const maxB = d3.max(allSpecies, function(d) { return d[1]; })
 
@@ -289,7 +292,7 @@
         const yBar = d3.scaleBand()
             .domain(allSpecies.map(d => d[0]))
             .range([ vpHeight4, 0 ])
-            .padding(.1);
+            .padding(.15);
         viewport4.append("g")
             .call(d3.axisLeft(yBar))
             .selectAll("text")
@@ -312,6 +315,7 @@
             .attr("x", vpWidth4/2 + 70)
             .attr("y", vpHeight4+margin4.top+30)
             .text("# of Trees Planted");
+
     }
     requestData();
 </script>
